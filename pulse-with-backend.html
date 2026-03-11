@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Supply Intelligence</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0c10;color:#e8eaf0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;min-height:100vh;display:flex}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#0a0c10}::-webkit-scrollbar-thumb{background:#252c3d;border-radius:4px}
+button,input,select,textarea{font-family:inherit}
+.mono{font-family:'Courier New',monospace}
+.serif{font-family:Georgia,serif}
+
+/* Layout */
+#sidebar{width:210px;background:#111318;border-right:1px solid #1e2330;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+#main{flex:1;overflow-y:auto;background:#0a0c10;display:flex;flex-direction:column}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #1e2330;position:sticky;top:0;background:#0a0c10;z-index:10}
+#content{flex:1;padding:24px}
+
+/* Sidebar */
+.logo{padding:22px 20px 18px;border-bottom:1px solid #1e2330}
+.logo h1{font-family:Georgia,serif;font-size:22px;color:#00e5a0;font-weight:normal}
+.logo p{font-family:'Courier New',monospace;font-size:10px;color:#6b7280;letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+nav{padding:14px 10px;flex:1}
+.nav-section{font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#6b7280;padding:8px 10px 5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600;color:#6b7280;cursor:pointer;margin-bottom:2px;transition:all 0.15s;user-select:none}
+.nav-item:hover{color:#e8eaf0;background:rgba(255,255,255,0.04)}
+.nav-item.active{color:#00e5a0;background:rgba(0,229,160,0.08)}
+.nav-item .icon{width:18px;text-align:center;font-size:14px}
+.nav-item .badge{background:#ff3d6b;color:white;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;font-family:'Courier New',monospace}
+.user-area{padding:14px 16px;border-top:1px solid #1e2330;display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0066ff,#00e5a0);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0}
+
+/* Cards */
+.card{background:#111318;border:1px solid #1e2330;border-radius:12px;overflow:hidden}
+.card-head{padding:14px 20px 12px;border-bottom:1px solid #1e2330;display:flex;align-items:center;justify-content:space-between}
+.card-head h3{font-size:13px;font-weight:700}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi{padding:20px;border-radius:12px;background:#111318;border:1px solid #1e2330}
+.kpi .kpi-label{font-family:'Courier New',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:10px}
+.kpi .kpi-val{font-family:Georgia,serif;font-size:30px;line-height:1;margin-bottom:7px}
+.kpi .kpi-sub{font-size:11px;font-weight:700;font-family:'Courier New',monospace}
+
+/* Tables */
+table{width:100%;border-collapse:collapse}
+th{font-family:'Courier New',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;padding:11px 16px;text-align:left;font-weight:500;border-bottom:1px solid #1e2330}
+td{padding:12px 16px;border-bottom:1px solid #1e2330;font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.015)}
+
+/* Pills */
+.pill{font-family:'Courier New',monospace;font-size:9px;padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;display:inline-block;white-space:nowrap}
+.pill-critical,.pill-HIGH,.pill-CRITICAL{background:rgba(255,61,107,0.12);color:#ff3d6b}
+.pill-low,.pill-MEDIUM{background:rgba(255,107,53,0.12);color:#ff6b35}
+.pill-healthy{background:rgba(0,229,160,0.1);color:#00e5a0}
+.pill-excess,.pill-LOW{background:rgba(255,204,0,0.1);color:#ffcc00}
+.pill-stockout{background:rgba(255,61,107,0.2);color:#ff3d6b}
+.pill-DRAFT{background:rgba(255,255,255,0.06);color:#6b7280}
+.pill-SENT{background:rgba(0,102,255,0.1);color:#0066ff}
+.pill-CONFIRMED{background:rgba(0,229,160,0.1);color:#00e5a0}
+.pill-RECEIVED{background:rgba(0,229,160,0.15);color:#00e5a0}
+
+/* Buttons */
+.btn{padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #00e5a0;background:#00e5a0;color:#000;transition:opacity 0.15s}
+.btn:hover{opacity:0.85}
+.btn-outline{background:transparent;color:#6b7280;border-color:#6b7280}
+.btn-blue{background:#0066ff;border-color:#0066ff;color:#fff}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-full{width:100%}
+.btn-advance{background:#171b24;border:1px solid #252c3d;color:#6b7280;padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+.btn-advance:hover{color:#e8eaf0}
+
+/* Forms */
+.field{margin-bottom:14px}
+.field label{font-family:'Courier New',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;display:block;margin-bottom:5px}
+.field input,.field select,.field textarea{background:#171b24;border:1px solid #252c3d;border-radius:8px;padding:9px 13px;color:#e8eaf0;font-size:13px;width:100%;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#00e5a0}
+.field textarea{min-height:60px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#111318;border:1px solid #252c3d;border-radius:16px;padding:28px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-head h2{font-family:Georgia,serif;font-size:20px;font-weight:normal}
+.modal-close{background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;line-height:1}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#111318;border-radius:10px;padding:13px 20px;z-index:200;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:320px;border:1px solid #00e5a0}
+
+/* Alert banner */
+.alert-banner{background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:14px;margin-bottom:22px}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:#ff6b35;flex-shrink:0;animation:pulse-dot 2s infinite}
+
+/* Progress bars */
+.bar-track{height:5px;background:#1e2330;border-radius:3px;overflow:hidden;margin-top:3px}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+
+/* Method toggle */
+.method-toggle{display:flex;background:#111318;border:1px solid #1e2330;border-radius:10px;padding:4px;gap:4px}
+.method-btn{padding:7px 14px;border-radius:7px;border:none;background:none;color:#6b7280;font-weight:700;font-size:11px;cursor:pointer;transition:all 0.2s}
+.method-btn.active-green{background:#00e5a0;color:#000}
+.method-btn.active-blue{background:#0066ff;color:#fff}
+
+/* Page visibility */
+.page{display:none}.page.active{display:block}
+
+/* SVG chart label */
+.chart-legend{display:flex;gap:16px;margin-top:10px}
+.legend-dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px}
+
+/* Supplier cards */
+.sup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.sup-card{background:#111318;border:1px solid #1e2330;border-radius:12px;overflow:hidden}
+
+/* Two col layout */
+.two-col{display:grid;grid-template-columns:1fr 290px;gap:14px;margin-bottom:14px}
+.two-col-lots{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.right-stack{display:flex;flex-direction:column;gap:14px}
+</style>
+
+/* ── AUTH SCREEN ── */
+#auth-screen{position:fixed;inset:0;background:#0a0c10;z-index:999;display:flex;align-items:center;justify-content:center}
+.auth-box{background:#111318;border:1px solid #1e2330;border-radius:16px;padding:40px;width:100%;max-width:400px}
+.auth-box h1{font-family:Georgia,serif;font-size:28px;color:#00e5a0;margin-bottom:4px;font-weight:normal}
+.auth-box p{color:#6b7280;font-size:13px;margin-bottom:28px}
+.auth-tabs{display:flex;gap:4px;margin-bottom:24px;background:#0a0c10;border-radius:10px;padding:4px}
+.auth-tab{flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;background:none;color:#6b7280;transition:all 0.2s}
+.auth-tab.active{background:#111318;color:#e8eaf0}
+.auth-error{background:rgba(255,61,107,0.1);border:1px solid rgba(255,61,107,0.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#ff3d6b;margin-bottom:14px;display:none}
+.auth-success{background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3);border-radius:8px;padding:10px 14px;font-size:12px;color:#00e5a0;margin-bottom:14px;display:none}
+
+/* ── LOADING SPINNER ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:#000;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── USER MENU ── */
+#user-menu{position:absolute;bottom:60px;left:10px;background:#171b24;border:1px solid #252c3d;border-radius:10px;padding:8px;min-width:180px;display:none;z-index:50}
+#user-menu button{display:block;width:100%;text-align:left;padding:8px 12px;background:none;border:none;color:#e8eaf0;font-size:13px;font-weight:600;cursor:pointer;border-radius:6px}
+#user-menu button:hover{background:rgba(255,61,107,0.1);color:#ff3d6b}
+
+/* ── SYNC INDICATOR ── */
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#00e5a0;display:inline-block;margin-right:6px;animation:pulse-dot 2s infinite}
+.sync-dot.offline{background:#ff3d6b;animation:none}
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo">
+    <h1>Pulse</h1>
+    <p>Supply Intelligence</p>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="goto('dashboard')"><span class="icon">◈</span><span>Dashboard</span></div>
+    <div class="nav-section" style="margin-top:8px">Inventory</div>
+    <div class="nav-item" onclick="goto('skus')"><span class="icon">▣</span><span>All SKUs</span></div>
+    <div class="nav-item" onclick="goto('lots')"><span class="icon">⧖</span><span>FIFO / LIFO</span></div>
+    <div class="nav-item" onclick="goto('pos')"><span class="icon">↻</span><span>Purchase Orders</span></div>
+    <div class="nav-section" style="margin-top:8px">Supply Chain</div>
+    <div class="nav-item" onclick="goto('suppliers')"><span class="icon">◉</span><span>Suppliers</span></div>
+    <div class="nav-item" onclick="goto('alerts')"><span class="icon">🔔</span><span style="flex:1">Alerts</span><span class="badge" id="alert-badge">4</span></div>
+  </nav>
+  <div class="user-area">
+    <div class="avatar">JM</div>
+    <div>
+      <div style="font-size:12px;font-weight:700">Jamie M.</div>
+      <div class="mono" style="font-size:10px;color:#6b7280">Supply Planner</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div class="serif" style="font-size:24px" id="page-title">Demand Overview</div>
+    <div class="mono" style="font-size:11px;color:#6b7280">March 10, 2026</div>
+  </div>
+  <div id="content">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════════════════ -->
+    <div id="page-dashboard" class="page active">
+      <div class="alert-banner">
+        <div class="pulse-dot"></div>
+        <span style="flex:1;font-size:13px;font-weight:600"><span style="color:#ff6b35">3 SKUs</span> at stockout risk — immediate purchase orders recommended</span>
+        <span class="mono" style="font-size:11px;color:#ff6b35;font-weight:700;cursor:pointer">View →</span>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi" style="border-top:2px solid #0066ff">
+          <div class="kpi-label">Inventory Value</div>
+          <div class="kpi-val">$2.42M</div>
+          <div class="kpi-sub" style="color:#00e5a0">▲ +8.3% demand trend</div>
+        </div>
+        <div class="kpi" style="border-top:2px solid #ff3d6b">
+          <div class="kpi-label">Stockout Risk SKUs</div>
+          <div class="kpi-val">3</div>
+          <div class="kpi-sub" style="color:#ff3d6b">7 unread alerts</div>
+        </div>
+        <div class="kpi" style="border-top:2px solid #ffcc00">
+          <div class="kpi-label">Excess Stock Value</div>
+          <div class="kpi-val">$88K</div>
+          <div class="kpi-sub" style="color:#ff3d6b">5 excess SKUs</div>
+        </div>
+        <div class="kpi" style="border-top:2px solid #ff6b35">
+          <div class="kpi-label">Expiring Lots (45d)</div>
+          <div class="kpi-val">14</div>
+          <div class="kpi-sub" style="color:#6b7280">5 pending POs</div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>Demand Forecast — All SKUs</h3>
+              <div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px">Actuals + 60-day projection</div>
+            </div>
+            <span class="mono" style="font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(0,229,160,0.1);color:#00e5a0">ML Active</span>
+          </div>
+          <div style="padding:16px 20px 12px">
+            <svg viewBox="0 0 520 155" style="width:100%;height:155px;overflow:visible">
+              <defs>
+                <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stop-color="#00e5a0" stop-opacity="0.25"/><stop offset="95%" stop-color="#00e5a0" stop-opacity="0"/></linearGradient>
+                <linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stop-color="#0066ff" stop-opacity="0.2"/><stop offset="95%" stop-color="#0066ff" stop-opacity="0"/></linearGradient>
+              </defs>
+              <!-- Grid lines -->
+              <line x1="38" y1="17" x2="510" y2="17" stroke="#1e2330" stroke-width="1"/>
+              <line x1="38" y1="48" x2="510" y2="48" stroke="#1e2330" stroke-width="1"/>
+              <line x1="38" y1="79" x2="510" y2="79" stroke="#1e2330" stroke-width="1"/>
+              <line x1="38" y1="110" x2="510" y2="110" stroke="#1e2330" stroke-width="1"/>
+              <!-- Y labels -->
+              <text x="33" y="21" text-anchor="end" font-size="9" fill="#6b7280" font-family="Courier New">2.4k</text>
+              <text x="33" y="52" text-anchor="end" font-size="9" fill="#6b7280" font-family="Courier New">2.0k</text>
+              <text x="33" y="83" text-anchor="end" font-size="9" fill="#6b7280" font-family="Courier New">1.6k</text>
+              <text x="33" y="114" text-anchor="end" font-size="9" fill="#6b7280" font-family="Courier New">1.2k</text>
+              <!-- X labels -->
+              <text x="38" y="148" text-anchor="middle" font-size="9" fill="#6b7280" font-family="Courier New">Dec</text>
+              <text x="152" y="148" text-anchor="middle" font-size="9" fill="#6b7280" font-family="Courier New">Jan</text>
+              <text x="266" y="148" text-anchor="middle" font-size="9" fill="#6b7280" font-family="Courier New">Feb</text>
+              <text x="342" y="148" text-anchor="middle" font-size="9" fill="#6b7280" font-family="Courier New">Mar</text>
+              <text x="418" y="148" text-anchor="middle" font-size="9" fill="#6b7280" font-family="Courier New">Apr</text>
+              <!-- Actual area -->
+              <path d="M38,64 L67,67 L95,37 L124,53 L152,88 L181,82 L209,71 L238,67 L266,63 L295,54 L323,56 L342,51 L361,49 L361,127 L38,127 Z" fill="url(#ga)"/>
+              <!-- Forecast area -->
+              <path d="M361,49 L380,45 L399,40 L418,37 L437,34 L456,30 L475,27 L510,23 L510,127 L361,127 Z" fill="url(#gf)"/>
+              <!-- Actual line -->
+              <path d="M38,64 L67,67 L95,37 L124,53 L152,88 L181,82 L209,71 L238,67 L266,63 L295,54 L323,56 L342,51 L361,49" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Forecast line -->
+              <path d="M361,49 L380,45 L399,40 L418,37 L437,34 L456,30 L475,27 L510,23" fill="none" stroke="#0066ff" stroke-width="2" stroke-dasharray="6 4" stroke-linecap="round"/>
+              <!-- Today marker -->
+              <line x1="361" y1="10" x2="361" y2="127" stroke="white" stroke-width="1" stroke-opacity="0.12" stroke-dasharray="3 3"/>
+              <rect x="339" y="10" width="44" height="14" rx="4" fill="#1e2330"/>
+              <text x="361" y="21" text-anchor="middle" font-size="8" fill="#6b7280" font-family="Courier New">TODAY</text>
+            </svg>
+            <div class="chart-legend">
+              <div class="mono" style="font-size:11px;color:#6b7280"><span class="legend-dot" style="background:#00e5a0"></span>Actual</div>
+              <div class="mono" style="font-size:11px;color:#6b7280"><span class="legend-dot" style="background:#0066ff"></span>Forecast</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>SKU Health</h3></div>
+          <div style="padding:18px">
+            <div id="health-bars"></div>
+            <div class="mono" style="margin-top:16px;padding-top:14px;border-top:1px solid #1e2330;font-size:10px;color:#6b7280">
+              COSTING: <span style="color:#00e5a0;font-weight:700">FIFO</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3>Recent Alerts</h3>
+          <span class="mono" style="font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(255,61,107,0.1);color:#ff3d6b">4 Unread</span>
+        </div>
+        <div id="dash-alerts"></div>
+      </div>
+    </div>
+
+    <!-- ══ SKUs ══════════════════════════════════════════════════ -->
+    <div id="page-skus" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="serif" style="font-size:22px">SKU <span style="color:#00e5a0;font-style:italic">Catalog</span></div>
+        <button class="btn" onclick="openModal('add-sku')">+ Add SKU</button>
+      </div>
+      <div class="card"><table><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Stock</th><th>Days Left</th><th>Reorder Pt</th><th>Lead Time</th><th>Status</th></tr></thead><tbody id="sku-tbody"></tbody></table></div>
+    </div>
+
+    <!-- ══ FIFO/LIFO ══════════════════════════════════════════════ -->
+    <div id="page-lots" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="serif" style="font-size:22px">Inventory <span style="color:#00e5a0;font-style:italic">Costing & Aging</span></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="mono" style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px">Method:</span>
+          <div class="method-toggle">
+            <button class="method-btn active-green" id="btn-FIFO" onclick="setMethod('FIFO')">FIFO</button>
+            <button class="method-btn" id="btn-LIFO" onclick="setMethod('LIFO')">LIFO</button>
+            <button class="method-btn" id="btn-WEIGHTED_AVG" onclick="setMethod('WEIGHTED_AVG')">W.AVG</button>
+          </div>
+          <button class="btn btn-blue" onclick="openModal('record-sale')">Record Sale</button>
+          <button class="btn" onclick="openModal('add-lot')">+ Add Lot</button>
+        </div>
+      </div>
+      <div id="method-desc" class="mono" style="font-size:11px;color:#6b7280;padding:10px 16px;background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.12);border-radius:8px;margin-bottom:16px"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px" id="lots-kpis"></div>
+      <div class="two-col-lots">
+        <div class="card">
+          <div class="card-head">
+            <div><h3>Lot Aging Tracker</h3><div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px" id="lots-sort-label">FIFO priority order</div></div>
+            <span class="mono" style="font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(255,61,107,0.1);color:#ff3d6b" id="expiring-badge">2 Expiring</span>
+          </div>
+          <table><thead><tr><th>SKU / Lot</th><th>Received</th><th>Qty</th><th>Cost</th><th>Age</th><th>Priority</th></tr></thead><tbody id="lots-tbody"></tbody></table>
+        </div>
+        <div class="right-stack">
+          <div class="card" id="cogs-compare"></div>
+          <div id="expiry-alerts-panel"></div>
+          <div id="sale-result-panel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PURCHASE ORDERS ════════════════════════════════════════ -->
+    <div id="page-pos" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="serif" style="font-size:22px">Purchase <span style="color:#00e5a0;font-style:italic">Orders</span></div>
+        <button class="btn" onclick="openModal('create-po')">+ Create PO</button>
+      </div>
+      <div class="card"><table><thead><tr><th>PO #</th><th>SKU</th><th>Supplier</th><th>Qty</th><th>Total</th><th>Expected</th><th>Status</th><th></th></tr></thead><tbody id="po-tbody"></tbody></table></div>
+    </div>
+
+    <!-- ══ SUPPLIERS ══════════════════════════════════════════════ -->
+    <div id="page-suppliers" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="serif" style="font-size:22px">Supplier <span style="color:#00e5a0;font-style:italic">Scorecards</span></div>
+        <button class="btn" onclick="openModal('add-supplier')">+ Add Supplier</button>
+      </div>
+      <div class="sup-grid" id="sup-grid"></div>
+    </div>
+
+    <!-- ══ ALERTS ══════════════════════════════════════════════════ -->
+    <div id="page-alerts" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="serif" style="font-size:22px">Alert <span style="color:#00e5a0;font-style:italic">Center</span></div>
+        <button class="btn btn-outline" onclick="markAllRead()">Mark all read</button>
+      </div>
+      <div id="alerts-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══ MODALS ══════════════════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal()">
+
+  <!-- Add SKU -->
+  <div class="modal" id="modal-add-sku" style="display:none" onclick="event.stopPropagation()">
+    <div class="modal-head"><h2>Add New SKU</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="grid2">
+      <div class="field"><label>SKU Code</label><input id="sku-code" placeholder="SKU-XXXX"></div>
+      <div class="field"><label>Name</label><input id="sku-name"></div>
+      <div class="field"><label>Category</label><input id="sku-cat"></div>
+      <div class="field"><label>Unit Price ($)</label><input id="sku-price" type="number"></div>
+      <div class="field"><label>Lead Time (days)</label><input id="sku-lt" type="number" value="14"></div>
+      <div class="field"><label>Reorder Point</label><input id="sku-rop" type="number" value="0"></div>
+    </div>
+    <button class="btn btn-full" style="margin-top:4px" onclick="saveSku()">Create SKU</button>
+  </div>
+
+  <!-- Add Lot -->
+  <div class="modal" id="modal-add-lot" style="display:none" onclick="event.stopPropagation()">
+    <div class="modal-head"><h2>Add Inventory Lot</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>SKU</label><select id="lot-sku"></select></div>
+    <div class="grid2">
+      <div class="field"><label>Lot Number</label><input id="lot-num" placeholder="LOT-XXXX-A"></div>
+      <div class="field"><label>Received Date</label><input id="lot-recv" type="date"></div>
+      <div class="field"><label>Expiry Date (optional)</label><input id="lot-expiry" type="date"></div>
+      <div class="field"><label>Quantity</label><input id="lot-qty" type="number" value="0"></div>
+      <div class="field"><label>Unit Cost ($)</label><input id="lot-cost" type="number" step="0.01" value="0"></div>
+    </div>
+    <button class="btn btn-full" style="margin-top:4px" onclick="saveLot()">Add Lot</button>
+  </div>
+
+  <!-- Record Sale -->
+  <div class="modal" id="modal-record-sale" style="display:none" onclick="event.stopPropagation()">
+    <div class="modal-head"><h2>Record Sale</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="sale-method-info" class="mono" style="font-size:11px;color:#6b7280;margin-bottom:16px;padding:10px 14px;background:rgba(0,229,160,0.05);border-radius:8px;border:1px solid rgba(0,229,160,0.15)"></div>
+    <div class="field"><label>SKU</label><select id="sale-sku"></select></div>
+    <div class="field"><label>Quantity Sold</label><input id="sale-qty" type="number" value="0"></div>
+    <button class="btn btn-full" style="margin-top:4px" onclick="doSale()">Record Sale & Calculate COGS</button>
+  </div>
+
+  <!-- Create PO -->
+  <div class="modal" id="modal-create-po" style="display:none" onclick="event.stopPropagation()">
+    <div class="modal-head"><h2>Create Purchase Order</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>SKU</label><select id="po-sku"></select></div>
+    <div class="field"><label>Supplier</label><select id="po-sup"></select></div>
+    <div class="grid2">
+      <div class="field"><label>Quantity</label><input id="po-qty" type="number" value="0"></div>
+      <div class="field"><label>Unit Cost ($)</label><input id="po-cost" type="number" step="0.01" value="0"></div>
+      <div class="field"><label>Expected Date</label><input id="po-eta" type="date"></div>
+    </div>
+    <div id="po-total" class="mono" style="font-size:11px;color:#00e5a0;margin-bottom:12px"></div>
+    <button class="btn btn-full" onclick="savePO()">Create PO</button>
+  </div>
+
+  <!-- Add Supplier -->
+  <div class="modal" id="modal-add-supplier" style="display:none" onclick="event.stopPropagation()">
+    <div class="modal-head"><h2>Add Supplier</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Company Name</label><input id="sup-name"></div>
+    <div class="field"><label>Email</label><input id="sup-email"></div>
+    <div class="grid2">
+      <div class="field"><label>Lead Time (days)</label><input id="sup-lt" type="number" value="14"></div>
+      <div class="field"><label>On-Time Rate (%)</label><input id="sup-ontime" type="number" value="100"></div>
+      <div class="field"><label>Fill Rate (%)</label><input id="sup-fill" type="number" value="100"></div>
+    </div>
+    <button class="btn btn-full" style="margin-top:4px" onclick="saveSupplier()">Add Supplier</button>
+  </div>
+
+</div>
+
+<!-- Toast container -->
+<div id="toast" class="toast" style="display:none"></div>
+
+
+<!-- ── AUTH SCREEN (shown when not logged in) ── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <h1>Pulse</h1>
+    <p>Supply Intelligence Platform</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Create Account</button>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+    <div class="field"><label>Email</label><input id="auth-email" type="email" placeholder="you@company.com"></div>
+    <div class="field"><label>Password</label><input id="auth-password" type="password" placeholder="••••••••"></div>
+    <div class="field" id="signup-name-field" style="display:none"><label>Company Name</label><input id="auth-company" placeholder="Your company"></div>
+    <button class="btn btn-full" id="auth-btn" onclick="doAuth()">Sign In</button>
+    <div style="margin-top:16px;text-align:center;font-size:12px;color:#6b7280">
+      <span id="demo-link" style="cursor:pointer;border-bottom:1px solid #252c3d" onclick="demoLogin()">Use demo account instead →</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── USER MENU (sign out) ── -->
+<div id="user-menu">
+  <button onclick="signOut()">🚪 Sign Out</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// PULSE — SUPPLY INTELLIGENCE PLATFORM
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── STEP 1: PASTE YOUR SUPABASE KEYS HERE ─────────────────────────────────────
+// Get these from supabase.com → your project → Settings → API
+const SUPABASE_URL = 'PASTE_YOUR_PROJECT_URL_HERE';
+const SUPABASE_KEY = 'PASTE_YOUR_ANON_KEY_HERE';
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Are keys configured?
+const SUPABASE_READY = SUPABASE_URL !== 'PASTE_YOUR_PROJECT_URL_HERE';
+
+// Init Supabase client if keys are set
+let sb = null;
+if (SUPABASE_READY) {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  script.onload = () => {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkSession();
+  };
+  document.head.appendChild(script);
+} else {
+  // No keys = demo mode, skip auth screen
+  document.getElementById('auth-screen').style.display = 'none';
+  initApp(null);
+}
+
+// ── AUTH STATE ────────────────────────────────────────────────────────────────
+let currentUser = null;
+let authTab = 'login';
+
+async function checkSession() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('auth-screen').style.display = 'none';
+    initApp(currentUser);
+  }
+  // else: auth screen stays visible
+}
+
+function switchTab(tab) {
+  authTab = tab;
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='signup')));
+  document.getElementById('auth-btn').textContent = tab === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('signup-name-field').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+async function doAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const btn = document.getElementById('auth-btn');
+  const errEl = document.getElementById('auth-error');
+  const okEl = document.getElementById('auth-success');
+
+  if (!email || !password) { showAuthError('Please enter email and password.'); return; }
+
+  btn.innerHTML = '<span class="spinner"></span>' + (authTab==='login'?'Signing in...':'Creating account...');
+  btn.disabled = true;
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  let result;
+  if (authTab === 'login') {
+    result = await sb.auth.signInWithPassword({ email, password });
+  } else {
+    result = await sb.auth.signUp({ email, password });
+  }
+
+  btn.disabled = false;
+  btn.textContent = authTab === 'login' ? 'Sign In' : 'Create Account';
+
+  if (result.error) { showAuthError(result.error.message); return; }
+
+  if (authTab === 'signup') {
+    okEl.textContent = '✓ Account created! Check your email to confirm, then sign in.';
+    okEl.style.display = 'block';
+    return;
+  }
+
+  currentUser = result.data.user;
+  document.getElementById('auth-screen').style.display = 'none';
+  initApp(currentUser);
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function demoLogin() {
+  document.getElementById('auth-screen').style.display = 'none';
+  initApp(null);
+}
+
+async function signOut() {
+  if (sb) await sb.auth.signOut();
+  location.reload();
+}
+
+function toggleUserMenu() {
+  const m = document.getElementById('user-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── APP INIT ──────────────────────────────────────────────────────────────────
+function initApp(user) {
+  // Update user display
+  const userLabel = user ? user.email.split('@')[0].substring(0,2).toUpperCase() : 'JM';
+  const userName = user ? user.email.split('@')[0] : 'Jamie M.';
+  const userSub = user ? user.email : 'Supply Planner';
+  document.querySelector('.avatar').textContent = userLabel;
+  document.querySelector('.user-area div:last-child div:first-child').textContent = userName;
+  document.querySelector('.user-area div:last-child div:last-child').textContent = userSub;
+
+  // Make avatar clickable for sign out
+  document.querySelector('.user-area').style.cursor = 'pointer';
+  document.querySelector('.user-area').onclick = toggleUserMenu;
+
+  // Close user menu when clicking elsewhere
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.user-area') && !e.target.closest('#user-menu')) {
+      document.getElementById('user-menu').style.display = 'none';
+    }
+  });
+
+  // Show sync indicator in topbar
+  const syncHtml = SUPABASE_READY
+    ? '<span><span class="sync-dot"></span><span class="mono" style="font-size:10px;color:#6b7280">Live</span></span>'
+    : '<span class="mono" style="font-size:10px;color:#6b7280;background:rgba(255,204,0,0.1);border:1px solid rgba(255,204,0,0.2);padding:3px 8px;border-radius:6px">Demo Mode — add Supabase keys to save data</span>';
+  document.getElementById('topbar').insertAdjacentHTML('beforeend', syncHtml);
+
+  renderDashboard();
+  renderLots();
+}
+
+// ── DATA (fallback / demo data) ───────────────────────────────────────────────
+let SKUS = [
+  {id:1,code:"SKU-0482",name:"Running Shoes M/10",cat:"Footwear",stock:42,days:11,status:"critical",rop:100,lt:18,price:44},
+  {id:2,code:"SKU-0871",name:"Wireless Earbuds Pro",cat:"Electronics",stock:128,days:19,status:"low",rop:120,lt:21,price:89},
+  {id:3,code:"SKU-0330",name:"Yoga Mat Premium",cat:"Fitness",stock:340,days:62,status:"healthy",rop:80,lt:14,price:18.5},
+  {id:4,code:"SKU-1104",name:"Winter Jacket XL",cat:"Apparel",stock:127,days:180,status:"excess",rop:30,lt:30,price:72},
+  {id:5,code:"SKU-0291",name:"Protein Powder 2lb",cat:"Nutrition",stock:294,days:35,status:"healthy",rop:150,lt:18,price:12.4},
+  {id:6,code:"SKU-0550",name:"Vitamin C 1000mg",cat:"Nutrition",stock:320,days:28,status:"low",rop:200,lt:10,price:6.8},
+];
+let LOTS = [
+  {id:1,lot:"LOT-0291-A",skuId:5,skuName:"Protein Powder 2lb",recv:"2023-11-14",expiry:"2026-03-28",qtyLeft:84,cost:12.40,age:117,expDays:18},
+  {id:2,lot:"LOT-0291-B",skuId:5,skuName:"Protein Powder 2lb",recv:"2024-01-08",expiry:"2026-06-15",qtyLeft:210,cost:13.10,age:61,expDays:97},
+  {id:3,lot:"LOT-0482-A",skuId:1,skuName:"Running Shoes M/10",recv:"2023-12-02",expiry:null,qtyLeft:42,cost:44.00,age:98,expDays:null},
+  {id:4,lot:"LOT-0550-C",skuId:6,skuName:"Vitamin C 1000mg",recv:"2024-02-01",expiry:"2026-04-16",qtyLeft:320,cost:6.80,age:37,expDays:37},
+  {id:5,lot:"LOT-0330-B",skuId:3,skuName:"Yoga Mat Premium",recv:"2024-02-19",expiry:null,qtyLeft:340,cost:18.50,age:19,expDays:null},
+  {id:6,lot:"LOT-1104-A",skuId:4,skuName:"Winter Jacket XL",recv:"2023-09-01",expiry:null,qtyLeft:127,cost:65.00,age:185,expDays:null},
+];
+let ALERTS = [
+  {id:1,title:"Stockout Risk: Running Shoes M/10",desc:"Will stock out in 11 days. Lead time is 18 days. Order 240 units immediately.",sev:"CRITICAL",read:false,sku:"Running Shoes M/10",date:"2026-03-09"},
+  {id:2,title:"Expiring Lot: LOT-0291-A",desc:"84 units of Protein Powder expiring in 18 days. $1,042 at risk. FIFO violation detected.",sev:"HIGH",read:false,sku:"Protein Powder 2lb",date:"2026-03-09"},
+  {id:3,title:"Supplier NXT-Logistics At Risk",desc:"On-time rate dropped to 61%. 3 open POs affected. Consider alternative supplier.",sev:"HIGH",read:false,sku:null,date:"2026-03-08"},
+  {id:4,title:"Vitamin C — Low Stock",desc:"Only 28 days of stock remaining. Reorder point is 200 units. QuickShip has 7-day lead time.",sev:"MEDIUM",read:false,sku:"Vitamin C 1000mg",date:"2026-03-08"},
+  {id:5,title:"Excess Stock: Winter Jacket XL",desc:"127 units, 185 days on hand. Season ending. Recommend 20% markdown.",sev:"LOW",read:true,sku:"Winter Jacket XL",date:"2026-03-07"},
+  {id:6,title:"FIFO Violation Detected",desc:"Warehouse Zone B picking LOT-0291-B before LOT-0291-A. Older lot expires in 18 days.",sev:"MEDIUM",read:true,sku:"Protein Powder 2lb",date:"2026-03-07"},
+];
+let SUPPLIERS = [
+  {id:1,name:"NXT-Logistics",email:"orders@nxt.com",lt:18,ontime:61,fill:88,risk:"HIGH"},
+  {id:2,name:"Pacific Supply Co.",email:"supply@pacific.com",lt:14,ontime:94,fill:98,risk:"LOW"},
+  {id:3,name:"QuickShip Partners",email:"qs@quickship.com",lt:7,ontime:87,fill:95,risk:"MEDIUM"},
+];
+let POS = [
+  {id:1,num:"PO-AX7K2M",sku:"Running Shoes M/10",sup:"Pacific Supply Co.",qty:240,total:10560,status:"DRAFT",eta:"2026-03-28"},
+  {id:2,num:"PO-BQ9R4N",sku:"Vitamin C 1000mg",sup:"QuickShip Partners",qty:500,total:3400,status:"SENT",eta:"2026-03-17"},
+  {id:3,num:"PO-CZ3T8P",sku:"Wireless Earbuds Pro",sup:"NXT-Logistics",qty:200,total:17800,status:"CONFIRMED",eta:"2026-03-31"},
+];
+
+// ── DATA LAYER (uses Supabase if connected, else local arrays) ────────────────
+const DB = {
+  async getSkus() {
+    if (!sb || !currentUser) return SKUS;
+    const { data, error } = await sb.from('skus').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (error) { console.error(error); return SKUS; }
+    return data.map(r => ({ id:r.id, code:r.sku_code, name:r.name, cat:r.category, stock:r.current_stock, days:r.days_of_stock, status:r.status, rop:r.reorder_point, lt:r.lead_time_days, price:r.unit_price }));
+  },
+  async addSku(sku) {
+    if (!sb || !currentUser) { SKUS.push({...sku, id:Date.now()}); return; }
+    await sb.from('skus').insert({ user_id:currentUser.id, sku_code:sku.code, name:sku.name, category:sku.cat, current_stock:0, days_of_stock:0, status:'unknown', reorder_point:sku.rop, lead_time_days:sku.lt, unit_price:sku.price });
+  },
+  async getLots() {
+    if (!sb || !currentUser) return LOTS;
+    const { data, error } = await sb.from('inventory_lots').select('*, skus(name)').eq('user_id', currentUser.id).order('received_date');
+    if (error) { console.error(error); return LOTS; }
+    return data.map(r => ({ id:r.id, lot:r.lot_number, skuId:r.sku_id, skuName:r.skus?.name||'Unknown', recv:r.received_date, expiry:r.expiry_date, qtyLeft:r.quantity_remaining, cost:r.unit_cost, age:Math.round((new Date()-new Date(r.received_date))/86400000), expDays:r.expiry_date?Math.round((new Date(r.expiry_date)-new Date())/86400000):null }));
+  },
+  async addLot(lot) {
+    if (!sb || !currentUser) { LOTS.push({...lot, id:Date.now()}); return; }
+    await sb.from('inventory_lots').insert({ user_id:currentUser.id, sku_id:lot.skuId, lot_number:lot.lot, received_date:lot.recv, expiry_date:lot.expiry||null, quantity_received:lot.qty, quantity_remaining:lot.qty, unit_cost:lot.cost });
+  },
+  async updateLotQty(id, newQty) {
+    if (!sb || !currentUser) { const l=LOTS.find(x=>x.id===id); if(l) l.qtyLeft=newQty; return; }
+    await sb.from('inventory_lots').update({ quantity_remaining:newQty }).eq('id', id);
+  },
+  async getPOs() {
+    if (!sb || !currentUser) return POS;
+    const { data, error } = await sb.from('purchase_orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (error) { console.error(error); return POS; }
+    return data.map(r => ({ id:r.id, num:r.id.substring(0,8).toUpperCase(), sku:r.sku_name, sup:r.supplier_name, qty:r.quantity, total:r.total_cost, status:r.status, eta:r.expected_date }));
+  },
+  async addPO(po) {
+    if (!sb || !currentUser) { POS.unshift({...po, id:Date.now()}); return; }
+    await sb.from('purchase_orders').insert({ user_id:currentUser.id, sku_name:po.sku, supplier_name:po.sup, quantity:po.qty, unit_cost:po.ucost, total_cost:po.total, status:'DRAFT', expected_date:po.eta });
+  },
+  async updatePOStatus(id, status) {
+    if (!sb || !currentUser) { const p=POS.find(x=>x.id===id); if(p) p.status=status; return; }
+    await sb.from('purchase_orders').update({ status }).eq('id', id);
+  },
+  async getSuppliers() {
+    if (!sb || !currentUser) return SUPPLIERS;
+    const { data, error } = await sb.from('suppliers').select('*').eq('user_id', currentUser.id);
+    if (error) { console.error(error); return SUPPLIERS; }
+    const risk = s => s.on_time_rate < 70 ? 'HIGH' : s.on_time_rate < 85 ? 'MEDIUM' : 'LOW';
+    return data.map(r => ({ id:r.id, name:r.name, email:r.email, lt:r.lead_time_days, ontime:r.on_time_rate, fill:r.fill_rate, risk:risk(r) }));
+  },
+  async addSupplier(s) {
+    if (!sb || !currentUser) { SUPPLIERS.push({...s, id:Date.now()}); return; }
+    await sb.from('suppliers').insert({ user_id:currentUser.id, name:s.name, email:s.email, lead_time_days:s.lt, on_time_rate:s.ontime, fill_rate:s.fill });
+  },
+  async getAlerts() {
+    if (!sb || !currentUser) return ALERTS;
+    const { data, error } = await sb.from('alerts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (error) { console.error(error); return ALERTS; }
+    return data.map(r => ({ id:r.id, title:r.title, desc:r.description, sev:r.severity, read:r.is_read, sku:r.sku_name, date:r.created_at?.split('T')[0] }));
+  },
+  async markAlertRead(id) {
+    if (!sb || !currentUser) { const a=ALERTS.find(x=>x.id===id); if(a) a.read=true; return; }
+    await sb.from('alerts').update({ is_read:true }).eq('id', id);
+  },
+  async markAllAlertsRead() {
+    if (!sb || !currentUser) { ALERTS.forEach(a=>a.read=true); return; }
+    await sb.from('alerts').update({ is_read:true }).eq('user_id', currentUser.id);
+  }
+};
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function goto(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+page+"'")) n.classList.add('active'); });
+  document.getElementById('page-title').textContent = titles[page];
+  if(page === 'skus') renderSkus();
+  if(page === 'lots') renderLots();
+  if(page === 'pos') renderPOs();
+  if(page === 'suppliers') renderSuppliers();
+  if(page === 'alerts') renderAlerts();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function pill(s) { return `<span class="pill pill-${s}">${s}</span>`; }
+function daysColor(d) { return d < 14 ? '#ff3d6b' : d < 30 ? '#ff6b35' : '#00e5a0'; }
+function riskColor(r) { return r === 'HIGH' ? '#ff3d6b' : r === 'MEDIUM' ? '#ff6b35' : '#00e5a0'; }
+function randId() { return Math.random().toString(36).substr(2,6).toUpperCase(); }
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  const c = type==='error'?'#ff3d6b':type==='warn'?'#ff6b35':'#00e5a0';
+  const icon = type==='error'?'✕':type==='warn'?'⚠':'✓';
+  t.style.borderColor = c; t.innerHTML = `<span style="color:${c};margin-right:8px">${icon}</span>${msg}`;
+  t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3500);
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+let currentModal = null;
+function openModal(name) {
+  // Populate dropdowns
+  if(name==='add-lot'||name==='record-sale') {
+    ['lot-sku','sale-sku'].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML='<option value="">Select SKU...</option>'+SKUS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');}});
+    if(name==='record-sale') document.getElementById('sale-method-info').innerHTML = `Using <strong style="color:#00e5a0">${currentMethod}</strong> — deducting ${currentMethod==='FIFO'?'oldest-first':currentMethod==='LIFO'?'newest-first':'at weighted average cost'}`;
+  }
+  if(name==='create-po') {
+    document.getElementById('po-sku').innerHTML='<option value="">Select SKU...</option>'+SKUS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('po-sup').innerHTML='<option value="">Select Supplier...</option>'+SUPPLIERS.map(s=>`<option value="${s.id}">${s.name} (${s.lt}d lead)</option>`).join('');
+    ['po-qty','po-cost'].forEach(id=>{document.getElementById(id).oninput=updatePOTotal;});
+  }
+  document.getElementById('modal-overlay').style.display='flex';
+  document.querySelectorAll('.modal').forEach(m=>m.style.display='none');
+  document.getElementById('modal-'+name).style.display='block';
+  currentModal = name;
+}
+function closeModal() {
+  document.getElementById('modal-overlay').style.display='none';
+  currentModal=null;
+}
+function updatePOTotal() {
+  const qty=+document.getElementById('po-qty').value, cost=+document.getElementById('po-cost').value;
+  const el=document.getElementById('po-total');
+  el.textContent = qty&&cost ? 'Total: $'+(qty*cost).toLocaleString() : '';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const health = [{l:'Healthy',v:31,c:'#00e5a0'},{l:'Low Stock',v:8,c:'#ff6b35'},{l:'Critical',v:3,c:'#ff3d6b'},{l:'Excess',v:5,c:'#ffcc00'},{l:'Stockout',v:1,c:'#ff3d6b'}];
+  document.getElementById('health-bars').innerHTML = health.map(h=>`
+    <div style="margin-bottom:13px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600">${h.l}</span>
+        <span class="mono" style="font-size:12px;color:${h.c}">${h.v}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(h.v/48*100)}%;background:${h.c}"></div></div>
+    </div>`).join('');
+  const unread = ALERTS.filter(a=>!a.read).slice(0,4);
+  document.getElementById('dash-alerts').innerHTML = unread.map((a,i)=>`
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 20px;${i<3?'border-bottom:1px solid #1e2330':''}">
+      ${pill(a.sev)}
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;margin-bottom:3px">${a.title}</div><div style="font-size:11px;color:#6b7280">${a.desc}</div></div>
+      <div class="mono" style="font-size:10px;color:#6b7280;flex-shrink:0">${a.date}</div>
+    </div>`).join('');
+}
+
+// ── SKUs ──────────────────────────────────────────────────────────────────────
+function renderSkus() {
+  document.getElementById('sku-tbody').innerHTML = SKUS.map(s=>`
+    <tr>
+      <td class="mono" style="font-size:11px;color:#6b7280">${s.code}</td>
+      <td style="font-weight:700">${s.name}</td>
+      <td style="color:#6b7280">${s.cat}</td>
+      <td class="mono" style="font-weight:700">${s.stock.toLocaleString()}</td>
+      <td><span class="serif" style="font-size:22px;color:${daysColor(s.days)}">${s.days>180?'180+':s.days}</span></td>
+      <td class="mono">${s.rop}</td>
+      <td class="mono">${s.lt}d</td>
+      <td>${pill(s.status)}</td>
+    </tr>`).join('');
+}
+
+function saveSku() {
+  const code=document.getElementById('sku-code').value.trim();
+  if(!code){showToast('SKU code required','warn');return;}
+  SKUS.push({id:Date.now(),code,name:document.getElementById('sku-name').value,cat:document.getElementById('sku-cat').value,stock:0,days:0,status:'unknown',rop:+document.getElementById('sku-rop').value,lt:+document.getElementById('sku-lt').value,price:+document.getElementById('sku-price').value});
+  closeModal(); renderSkus(); showToast('SKU created successfully');
+}
+
+// ── FIFO/LIFO ─────────────────────────────────────────────────────────────────
+function setMethod(m) {
+  currentMethod = m;
+  ['FIFO','LIFO','WEIGHTED_AVG'].forEach(x=>{
+    const btn=document.getElementById('btn-'+x);
+    btn.className='method-btn'+(x===m?(x==='LIFO'?' active-blue':' active-green'):'');
+  });
+  renderLots();
+}
+
+function renderLots() {
+  const info = cogsInfo[currentMethod];
+  const expiring = LOTS.filter(l=>l.expDays!==null&&l.expDays<=45);
+  const sorted = currentMethod==='LIFO' ? [...LOTS].sort((a,b)=>b.recv.localeCompare(a.recv)) : [...LOTS].sort((a,b)=>a.recv.localeCompare(b.recv));
+
+  document.getElementById('method-desc').innerHTML = `<strong style="color:#00e5a0">${currentMethod}</strong> — ${info.desc}`;
+  document.getElementById('lots-sort-label').textContent = currentMethod+' priority order';
+  document.getElementById('expiring-badge').textContent = expiring.length+' Expiring';
+  document.getElementById('expiring-badge').style.display = expiring.length ? 'inline' : 'none';
+
+  // KPIs
+  document.getElementById('lots-kpis').innerHTML = `
+    <div class="kpi" style="border-top:2px solid #00e5a0">
+      <div class="kpi-label">COGS (${currentMethod})</div>
+      <div class="kpi-val" style="font-size:26px">$${info.cogs.toLocaleString()}</div>
+      <div class="kpi-sub" style="color:#00e5a0">Gross margin: ${info.margin}%</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid #ffcc00">
+      <div class="kpi-label">Expiry Risk Value</div>
+      <div class="kpi-val" style="font-size:26px;color:#ff6b35">$${expiring.reduce((a,l)=>a+l.qtyLeft*l.cost,0).toFixed(0)}</div>
+      <div class="kpi-sub" style="color:#6b7280">${expiring.length} lots expiring ≤45 days</div>
+    </div>
+    <div class="kpi" style="border-top:2px solid #0066ff">
+      <div class="kpi-label">FIFO vs LIFO Delta</div>
+      <div class="kpi-val" style="font-size:26px;color:#0066ff">$18,400</div>
+      <div class="kpi-sub" style="color:#6b7280">LIFO saves more tax in rising-cost env.</div>
+    </div>`;
+
+  // Lot table
+  document.getElementById('lots-tbody').innerHTML = sorted.map((lot,i)=>{
+    const isExp = lot.expDays!==null&&lot.expDays<=45;
+    const ac = isExp?'#ff3d6b':lot.age>100?'#ff6b35':'#00e5a0';
+    const priTag = isExp
+      ? `<span class="mono" style="font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;background:rgba(255,61,107,0.12);color:#ff3d6b">⚠ EXPIRING</span>`
+      : i===0
+        ? `<span class="mono" style="font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;background:rgba(0,229,160,0.12);color:#00e5a0">↑ ${currentMethod} #1</span>`
+        : `<span class="mono" style="font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;background:rgba(255,255,255,0.05);color:#6b7280">#${i+1}</span>`;
+    return `<tr>
+      <td><div style="font-size:12px;font-weight:700">${lot.skuName}</div><div class="mono" style="font-size:10px;color:#6b7280">${lot.lot}${lot.expiry?' · Exp '+lot.expiry:''}</div></td>
+      <td class="mono" style="font-size:11px;color:#6b7280">${lot.recv}</td>
+      <td class="mono" style="font-weight:700">${lot.qtyLeft}</td>
+      <td class="mono">$${lot.cost.toFixed(2)}</td>
+      <td><div class="mono" style="font-size:13px;font-weight:700;color:${ac}">${lot.age}d</div><div class="bar-track" style="width:55px;margin-top:3px"><div class="bar-fill" style="width:${Math.min(100,(lot.age/150)*100)}%;background:${ac}"></div></div></td>
+      <td>${priTag}</td>
+    </tr>`;
+  }).join('');
+
+  // COGS comparison
+  document.getElementById('cogs-compare').innerHTML = `
+    <div class="card-head"><div><h3>FIFO vs LIFO Impact</h3><div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px">Q1 2026 · Rising cost environment</div></div></div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+      ${[['FIFO','#00e5a0','#000',cogsInfo.FIFO,'↑ Higher Margin'],['LIFO','#0066ff','#fff',cogsInfo.LIFO,'↓ Lower Tax']].map(([nm,clr,tc,data,tag])=>`
+        <div style="background:#171b24;border-radius:10px;padding:14px;border:1px solid ${currentMethod===nm?clr+'55':'#1e2330'};position:relative">
+          <div style="position:absolute;top:10px;right:10px;font-family:Courier New;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${nm==='FIFO'?'rgba(0,229,160,0.1)':'rgba(0,102,255,0.1)'};color:${clr}">${tag}</div>
+          <div class="mono" style="font-size:11px;font-weight:800;letter-spacing:2px;color:${clr};margin-bottom:8px">${nm}</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#6b7280">COGS</span><span class="serif" style="font-size:18px;color:${clr}">$${data.cogs.toLocaleString()}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#6b7280">Gross Margin</span><span class="mono" style="font-size:12px;font-weight:700;color:${clr}">${data.margin}%</span></div>
+        </div>`).join('')}
+    </div>`;
+
+  // Expiry alerts
+  const expPanel = document.getElementById('expiry-alerts-panel');
+  if(expiring.length) {
+    expPanel.innerHTML = `<div class="card"><div class="card-head"><h3>Expiry Risk Alerts</h3></div><div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+      ${expiring.map(lot=>`
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(255,61,107,0.06);border:1px solid rgba(255,61,107,0.2);border-radius:8px;padding:11px 13px">
+          <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#ff3d6b">${lot.lot}</div><div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px">${lot.qtyLeft} units · $${(lot.qtyLeft*lot.cost).toFixed(0)} at risk</div></div>
+          <div class="serif" style="font-size:22px;color:#ff3d6b">${lot.expDays}d</div>
+        </div>`).join('')}
+    </div></div>`;
+  } else expPanel.innerHTML='';
+}
+
+function saveLot() {
+  const skuId=+document.getElementById('lot-sku').value;
+  if(!skuId){showToast('Select a SKU','warn');return;}
+  const sku=SKUS.find(s=>s.id===skuId);
+  const expiry=document.getElementById('lot-expiry').value||null;
+  const expDays=expiry?Math.round((new Date(expiry)-new Date())/86400000):null;
+  LOTS.push({id:Date.now(),lot:document.getElementById('lot-num').value,skuId,skuName:sku?.name||'Unknown',recv:document.getElementById('lot-recv').value,expiry,qtyLeft:+document.getElementById('lot-qty').value,cost:+document.getElementById('lot-cost').value,age:0,expDays});
+  closeModal(); renderLots(); showToast('Lot added successfully');
+}
+
+function doSale() {
+  const skuId=+document.getElementById('sale-sku').value;
+  const qty=+document.getElementById('sale-qty').value;
+  if(!skuId||!qty){showToast('Select a SKU and enter quantity','warn');return;}
+  const skuLots=LOTS.filter(l=>l.skuId===skuId&&l.qtyLeft>0);
+  const ordered=currentMethod==='LIFO'?[...skuLots].sort((a,b)=>b.recv.localeCompare(a.recv)):[...skuLots].sort((a,b)=>a.recv.localeCompare(b.recv));
+  const avgC=skuLots.length?skuLots.reduce((a,l)=>a+l.qtyLeft*l.cost,0)/skuLots.reduce((a,l)=>a+l.qtyLeft,0):0;
+  let rem=qty,cogs=0,layers=[];
+  for(const lot of ordered){
+    if(rem<=0)break;
+    const take=Math.min(lot.qtyLeft,rem);
+    const uc=currentMethod==='WEIGHTED_AVG'?avgC:lot.cost;
+    cogs+=take*uc; layers.push({lot:lot.lot,units:take,uc:uc.toFixed(2),cogs:(take*uc).toFixed(2)});
+    rem-=take;
+    const idx=LOTS.findIndex(l=>l.id===lot.id);
+    if(idx>=0) LOTS[idx]={...LOTS[idx],qtyLeft:LOTS[idx].qtyLeft-take};
+  }
+  closeModal();
+  document.getElementById('sale-result-panel').innerHTML = `
+    <div class="card" style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.2)">
+      <div style="padding:14px 16px">
+        <div class="mono" style="font-size:10px;color:#00e5a0;font-weight:700;letter-spacing:1.5px;margin-bottom:8px">LAST SALE · ${currentMethod}</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#6b7280">Units Sold</span><span class="mono" style="font-size:13px;font-weight:700">${qty}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:#6b7280">Total COGS</span><span class="serif" style="font-size:20px;color:#00e5a0">$${cogs.toFixed(2)}</span></div>
+        <div style="border-top:1px solid #1e2330;padding-top:8px">${layers.map(l=>`<div class="mono" style="font-size:10px;color:#6b7280;display:flex;justify-content:space-between;margin-bottom:3px"><span>${l.lot}</span><span>${l.units} × $${l.uc} = $${l.cogs}</span></div>`).join('')}</div>
+      </div>
+    </div>`;
+  renderLots(); showToast(`COGS: $${cogs.toFixed(2)} recorded under ${currentMethod}`);
+}
+
+// ── PURCHASE ORDERS ───────────────────────────────────────────────────────────
+const poFlow = {DRAFT:'SENT',SENT:'CONFIRMED',CONFIRMED:'RECEIVED'};
+function renderPOs() {
+  document.getElementById('po-tbody').innerHTML = POS.map(p=>`
+    <tr>
+      <td class="mono" style="font-size:11px;color:#00e5a0">${p.num}</td>
+      <td style="font-weight:700">${p.sku}</td>
+      <td style="color:#6b7280">${p.sup}</td>
+      <td class="mono">${p.qty.toLocaleString()}</td>
+      <td class="serif" style="font-size:16px">$${p.total.toLocaleString()}</td>
+      <td class="mono" style="font-size:11px;color:#6b7280">${p.eta}</td>
+      <td>${pill(p.status)}</td>
+      <td>${!['RECEIVED','CANCELLED'].includes(p.status)?`<button class="btn-advance" onclick="advancePO(${p.id})">→ Advance</button>`:''}</td>
+    </tr>`).join('');
+}
+
+function advancePO(id) {
+  const po = POS.find(p=>p.id===id);
+  if(po&&poFlow[po.status]){po.status=poFlow[po.status];renderPOs();showToast('PO advanced to '+po.status);}
+}
+
+function savePO() {
+  const skuId=+document.getElementById('po-sku').value;
+  const supId=+document.getElementById('po-sup').value;
+  if(!skuId||!supId){showToast('Select SKU and Supplier','warn');return;}
+  const sku=SKUS.find(s=>s.id===skuId), sup=SUPPLIERS.find(s=>s.id===supId);
+  const qty=+document.getElementById('po-qty').value, cost=+document.getElementById('po-cost').value;
+  POS.unshift({id:Date.now(),num:'PO-'+randId(),sku:sku?.name||'—',sup:sup?.name||'—',qty,total:qty*cost,status:'DRAFT',eta:document.getElementById('po-eta').value});
+  closeModal(); renderPOs(); showToast('Purchase order created');
+}
+
+// ── SUPPLIERS ─────────────────────────────────────────────────────────────────
+function renderSuppliers() {
+  document.getElementById('sup-grid').innerHTML = SUPPLIERS.map(s=>{
+    const rc=riskColor(s.risk);
+    return `<div class="sup-card" style="border-left:3px solid ${rc}">
+      <div style="padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div><div style="font-size:15px;font-weight:700">${s.name}</div><div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px">${s.email}</div></div>
+          ${pill(s.risk+' RISK')} 
+        </div>
+        ${[['On-Time Rate',s.ontime,'%',s.ontime>=85?'#00e5a0':s.ontime>=70?'#ff6b35':'#ff3d6b'],['Fill Rate',s.fill,'%',s.fill>=90?'#00e5a0':'#ff6b35'],['Lead Time',s.lt,' days','#e8eaf0']].map(([label,val,unit,clr])=>`
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#6b7280">${label}</span><span class="mono" style="font-size:12px;font-weight:700;color:${clr}">${val}${unit}</span></div>
+            ${unit==='%'?`<div class="bar-track"><div class="bar-fill" style="width:${val}%;background:${clr}"></div></div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveSupplier() {
+  const name=document.getElementById('sup-name').value.trim();
+  if(!name){showToast('Company name required','warn');return;}
+  const ontime=+document.getElementById('sup-ontime').value;
+  const risk=ontime<70?'HIGH':ontime<85?'MEDIUM':'LOW';
+  SUPPLIERS.push({id:Date.now(),name,email:document.getElementById('sup-email').value,lt:+document.getElementById('sup-lt').value,ontime,fill:+document.getElementById('sup-fill').value,risk});
+  closeModal(); renderSuppliers(); showToast('Supplier added');
+}
+
+// ── ALERTS ────────────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const unread = ALERTS.filter(a=>!a.read).length;
+  document.getElementById('alert-badge').textContent = unread;
+  document.getElementById('alert-badge').style.display = unread ? 'inline' : 'none';
+  const sc=s=>s==='CRITICAL'||s==='HIGH'?'#ff3d6b':s==='MEDIUM'?'#ff6b35':'#ffcc00';
+  document.getElementById('alerts-list').innerHTML = ALERTS.map(a=>`
+    <div style="background:#111318;border:1px solid #1e2330;border-radius:12px;padding:20px;border-left:3px solid ${a.read?'transparent':sc(a.sev)};opacity:${a.read?0.5:1};transition:all 0.2s">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            ${pill(a.sev)}
+            ${a.sku?`<span class="mono" style="font-size:10px;color:#6b7280">${a.sku}</span>`:''}
+            <span class="mono" style="font-size:10px;color:#6b7280;margin-left:auto">${a.date}</span>
+          </div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:5px">${a.title}</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.6">${a.desc}</div>
+        </div>
+        ${!a.read?`<button class="btn btn-outline btn-sm" style="margin-left:16px;flex-shrink:0" onclick="markRead(${a.id})">Mark Read</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function markRead(id) { const a=ALERTS.find(x=>x.id===id); if(a){a.read=true;renderAlerts();} }
+function markAllRead() { ALERTS.forEach(a=>a.read=true); renderAlerts(); showToast('All alerts marked as read'); }
+
+
+// ── ASYNC WRAPPERS (override sync functions with DB-backed versions) ───────────
+
+// Override renderSkus to be async + DB-backed
+async function renderSkus() {
+  document.getElementById('sku-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px">Loading...</td></tr>';
+  const skus = await DB.getSkus();
+  if (!skus.length) {
+    document.getElementById('sku-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px">No SKUs yet. Click "+ Add SKU" to get started.</td></tr>';
+    return;
+  }
+  document.getElementById('sku-tbody').innerHTML = skus.map(s=>`
+    <tr>
+      <td class="mono" style="font-size:11px;color:#6b7280">${s.code||'—'}</td>
+      <td style="font-weight:700">${s.name}</td>
+      <td style="color:#6b7280">${s.cat||'—'}</td>
+      <td class="mono" style="font-weight:700">${(s.stock||0).toLocaleString()}</td>
+      <td><span class="serif" style="font-size:22px;color:${daysColor(s.days||0)}">${(s.days||0)>180?'180+':s.days||0}</span></td>
+      <td class="mono">${s.rop||0}</td>
+      <td class="mono">${s.lt||14}d</td>
+      <td>${pill(s.status||'unknown')}</td>
+    </tr>`).join('');
+}
+
+async function saveSku() {
+  const code = document.getElementById('sku-code').value.trim();
+  if (!code) { showToast('SKU code required', 'warn'); return; }
+  const btn = document.querySelector('#modal-add-sku .btn');
+  btn.innerHTML = '<span class="spinner"></span>Saving...'; btn.disabled = true;
+  await DB.addSku({ code, name:document.getElementById('sku-name').value, cat:document.getElementById('sku-cat').value, rop:+document.getElementById('sku-rop').value, lt:+document.getElementById('sku-lt').value, price:+document.getElementById('sku-price').value });
+  btn.textContent = 'Create SKU'; btn.disabled = false;
+  closeModal(); await renderSkus(); showToast('SKU created successfully');
+}
+
+// Override renderPOs
+async function renderPOs() {
+  document.getElementById('po-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px">Loading...</td></tr>';
+  const pos = await DB.getPOs();
+  if (!pos.length) {
+    document.getElementById('po-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:24px">No purchase orders yet.</td></tr>';
+    return;
+  }
+  document.getElementById('po-tbody').innerHTML = pos.map(p=>`
+    <tr>
+      <td class="mono" style="font-size:11px;color:#00e5a0">${p.num}</td>
+      <td style="font-weight:700">${p.sku}</td>
+      <td style="color:#6b7280">${p.sup}</td>
+      <td class="mono">${(p.qty||0).toLocaleString()}</td>
+      <td class="serif" style="font-size:16px">$${(p.total||0).toLocaleString()}</td>
+      <td class="mono" style="font-size:11px;color:#6b7280">${p.eta||'—'}</td>
+      <td>${pill(p.status)}</td>
+      <td>${!['RECEIVED','CANCELLED'].includes(p.status)?`<button class="btn-advance" onclick="advancePO('${p.id}')">→ Advance</button>`:''}</td>
+    </tr>`).join('');
+}
+
+async function advancePO(id) {
+  const allPOs = await DB.getPOs();
+  const po = allPOs.find(p=>p.id==id);
+  const flow = {DRAFT:'SENT',SENT:'CONFIRMED',CONFIRMED:'RECEIVED'};
+  if (po && flow[po.status]) {
+    await DB.updatePOStatus(id, flow[po.status]);
+    await renderPOs();
+    showToast('PO advanced to '+flow[po.status]);
+  }
+}
+
+async function savePO() {
+  const skuId = document.getElementById('po-sku').value;
+  const supId = document.getElementById('po-sup').value;
+  if (!skuId || !supId) { showToast('Select SKU and Supplier', 'warn'); return; }
+  const allSkus = await DB.getSkus();
+  const allSups = await DB.getSuppliers();
+  const sku = allSkus.find(s=>s.id==skuId) || SKUS.find(s=>s.id==+skuId);
+  const sup = allSups.find(s=>s.id==supId) || SUPPLIERS.find(s=>s.id==+supId);
+  const qty = +document.getElementById('po-qty').value;
+  const cost = +document.getElementById('po-cost').value;
+  const btn = document.querySelector('#modal-create-po .btn');
+  btn.innerHTML = '<span class="spinner"></span>Creating...'; btn.disabled = true;
+  await DB.addPO({ sku:sku?.name||'—', sup:sup?.name||'—', qty, ucost:cost, total:qty*cost, eta:document.getElementById('po-eta').value });
+  btn.textContent = 'Create PO'; btn.disabled = false;
+  closeModal(); await renderPOs(); showToast('Purchase order created');
+}
+
+// Override renderSuppliers
+async function renderSuppliers() {
+  document.getElementById('sup-grid').innerHTML = '<div style="color:#6b7280;padding:24px">Loading...</div>';
+  const sups = await DB.getSuppliers();
+  if (!sups.length) {
+    document.getElementById('sup-grid').innerHTML = '<div style="color:#6b7280;padding:24px">No suppliers yet. Click "+ Add Supplier".</div>';
+    return;
+  }
+  document.getElementById('sup-grid').innerHTML = sups.map(s => {
+    const rc = riskColor(s.risk);
+    return `<div class="sup-card" style="border-left:3px solid ${rc}">
+      <div style="padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+          <div><div style="font-size:15px;font-weight:700">${s.name}</div><div class="mono" style="font-size:10px;color:#6b7280;margin-top:2px">${s.email||'—'}</div></div>
+          ${pill(s.risk+' RISK')}
+        </div>
+        ${[['On-Time Rate',s.ontime,'%',s.ontime>=85?'#00e5a0':s.ontime>=70?'#ff6b35':'#ff3d6b'],['Fill Rate',s.fill,'%',s.fill>=90?'#00e5a0':'#ff6b35'],['Lead Time',s.lt,' days','#e8eaf0']].map(([label,val,unit,clr])=>`
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:11px;color:#6b7280">${label}</span><span class="mono" style="font-size:12px;font-weight:700;color:${clr}">${val}${unit}</span></div>
+            ${unit==='%'?`<div class="bar-track"><div class="bar-fill" style="width:${val}%;background:${clr}"></div></div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveSupplier() {
+  const name = document.getElementById('sup-name').value.trim();
+  if (!name) { showToast('Company name required', 'warn'); return; }
+  const ontime = +document.getElementById('sup-ontime').value;
+  const risk = ontime < 70 ? 'HIGH' : ontime < 85 ? 'MEDIUM' : 'LOW';
+  const btn = document.querySelector('#modal-add-supplier .btn');
+  btn.innerHTML = '<span class="spinner"></span>Saving...'; btn.disabled = true;
+  await DB.addSupplier({ name, email:document.getElementById('sup-email').value, lt:+document.getElementById('sup-lt').value, ontime, fill:+document.getElementById('sup-fill').value, risk });
+  btn.textContent = 'Add Supplier'; btn.disabled = false;
+  closeModal(); await renderSuppliers(); showToast('Supplier added');
+}
+
+// Override renderAlerts
+async function renderAlerts() {
+  const alerts = await DB.getAlerts();
+  const unread = alerts.filter(a=>!a.read).length;
+  document.getElementById('alert-badge').textContent = unread;
+  document.getElementById('alert-badge').style.display = unread ? 'inline' : 'none';
+  const sc = s => s==='CRITICAL'||s==='HIGH'?'#ff3d6b':s==='MEDIUM'?'#ff6b35':'#ffcc00';
+  document.getElementById('alerts-list').innerHTML = alerts.length
+    ? alerts.map(a=>`
+      <div style="background:#111318;border:1px solid #1e2330;border-radius:12px;padding:20px;border-left:3px solid ${a.read?'transparent':sc(a.sev)};opacity:${a.read?0.5:1};transition:all 0.2s">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              ${pill(a.sev)}
+              ${a.sku?`<span class="mono" style="font-size:10px;color:#6b7280">${a.sku}</span>`:''}
+              <span class="mono" style="font-size:10px;color:#6b7280;margin-left:auto">${a.date||''}</span>
+            </div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:5px">${a.title}</div>
+            <div style="font-size:12px;color:#6b7280;line-height:1.6">${a.desc}</div>
+          </div>
+          ${!a.read?`<button class="btn btn-outline btn-sm" style="margin-left:16px;flex-shrink:0" onclick="markRead('${a.id}')">Mark Read</button>`:''}
+        </div>
+      </div>`).join('')
+    : '<div style="color:#6b7280;text-align:center;padding:32px">No alerts. All clear! ✓</div>';
+}
+
+async function markRead(id) {
+  await DB.markAlertRead(id);
+  await renderAlerts();
+}
+
+async function markAllRead() {
+  await DB.markAllAlertsRead();
+  await renderAlerts();
+  showToast('All alerts marked as read');
+}
+
+// Override renderLots to be async
+async function renderLots() {
+  const lots = await DB.getLots();
+  LOTS = lots; // sync local copy for FIFO engine
+  _renderLotsWithData(lots);
+}
+
+async function saveLot() {
+  const skuId = document.getElementById('lot-sku').value;
+  if (!skuId) { showToast('Select a SKU', 'warn'); return; }
+  const allSkus = await DB.getSkus();
+  const sku = allSkus.find(s=>s.id==skuId) || SKUS.find(s=>s.id==+skuId);
+  const expiry = document.getElementById('lot-expiry').value || null;
+  const expDays = expiry ? Math.round((new Date(expiry)-new Date())/86400000) : null;
+  const btn = document.querySelector('#modal-add-lot .btn');
+  btn.innerHTML = '<span class="spinner"></span>Saving...'; btn.disabled = true;
+  await DB.addLot({ skuId, skuName:sku?.name||'Unknown', lot:document.getElementById('lot-num').value, recv:document.getElementById('lot-recv').value, expiry, qty:+document.getElementById('lot-qty').value, cost:+document.getElementById('lot-cost').value, expDays });
+  btn.textContent = 'Add Lot'; btn.disabled = false;
+  closeModal(); await renderLots(); showToast('Lot added successfully');
+}
+
+async function doSale() {
+  const skuId = +document.getElementById('sale-sku').value;
+  const qty = +document.getElementById('sale-qty').value;
+  if (!skuId || !qty) { showToast('Select a SKU and enter quantity', 'warn'); return; }
+  const lots = await DB.getLots();
+  const skuLots = lots.filter(l=>l.skuId==skuId && l.qtyLeft>0);
+  const ordered = currentMethod==='LIFO' ? [...skuLots].sort((a,b)=>b.recv.localeCompare(a.recv)) : [...skuLots].sort((a,b)=>a.recv.localeCompare(b.recv));
+  const avgC = skuLots.length ? skuLots.reduce((a,l)=>a+l.qtyLeft*l.cost,0)/skuLots.reduce((a,l)=>a+l.qtyLeft,0) : 0;
+  let rem=qty, cogs=0, layers=[];
+  for (const lot of ordered) {
+    if (rem <= 0) break;
+    const take = Math.min(lot.qtyLeft, rem);
+    const uc = currentMethod==='WEIGHTED_AVG' ? avgC : lot.cost;
+    cogs += take*uc;
+    layers.push({ lot:lot.lot, units:take, uc:uc.toFixed(2), cogs:(take*uc).toFixed(2) });
+    rem -= take;
+    await DB.updateLotQty(lot.id, lot.qtyLeft - take);
+  }
+  closeModal();
+  document.getElementById('sale-result-panel').innerHTML = `
+    <div class="card" style="background:rgba(0,229,160,0.04);border:1px solid rgba(0,229,160,0.2)">
+      <div style="padding:14px 16px">
+        <div class="mono" style="font-size:10px;color:#00e5a0;font-weight:700;letter-spacing:1.5px;margin-bottom:8px">LAST SALE · ${currentMethod}</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#6b7280">Units Sold</span><span class="mono" style="font-size:13px;font-weight:700">${qty}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:#6b7280">Total COGS</span><span class="serif" style="font-size:20px;color:#00e5a0">$${cogs.toFixed(2)}</span></div>
+        <div style="border-top:1px solid #1e2330;padding-top:8px">${layers.map(l=>`<div class="mono" style="font-size:10px;color:#6b7280;display:flex;justify-content:space-between;margin-bottom:3px"><span>${l.lot}</span><span>${l.units} × $${l.uc} = $${l.cogs}</span></div>`).join('')}</div>
+      </div>
+    </div>`;
+  await renderLots();
+  showToast(`COGS: $${cogs.toFixed(2)} recorded under ${currentMethod}`);
+}
+
+// Override openModal to populate dropdowns async
+const _origOpenModal = openModal;
+function openModal(name) {
+  document.getElementById('modal-overlay').style.display='flex';
+  document.querySelectorAll('.modal').forEach(m=>m.style.display='none');
+  document.getElementById('modal-'+name).style.display='block';
+  currentModal = name;
+  if (name==='add-lot'||name==='record-sale') {
+    DB.getSkus().then(skus => {
+      ['lot-sku','sale-sku'].forEach(id=>{const el=document.getElementById(id);if(el){el.innerHTML='<option value="">Select SKU...</option>'+skus.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');}});
+    });
+    if (name==='record-sale') document.getElementById('sale-method-info').innerHTML = `Using <strong style="color:#00e5a0">${currentMethod}</strong> — deducting ${currentMethod==='FIFO'?'oldest-first':currentMethod==='LIFO'?'newest-first':'at weighted average cost'}`;
+  }
+  if (name==='create-po') {
+    Promise.all([DB.getSkus(), DB.getSuppliers()]).then(([skus, sups]) => {
+      document.getElementById('po-sku').innerHTML='<option value="">Select SKU...</option>'+skus.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+      document.getElementById('po-sup').innerHTML='<option value="">Select Supplier...</option>'+sups.map(s=>`<option value="${s.id}">${s.name} (${s.lt}d lead)</option>`).join('');
+    });
+    ['po-qty','po-cost'].forEach(id=>{document.getElementById(id).oninput=updatePOTotal;});
+  }
+}
+
+// Override goto to handle async pages
+const _origGoto = goto;
+function goto(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+page+"'"))n.classList.add('active');});
+  document.getElementById('page-title').textContent = {dashboard:'Demand Overview',skus:'SKU Catalog',lots:'Costing & Aging',pos:'Purchase Orders',suppliers:'Suppliers',alerts:'Alert Center'}[page];
+  if(page==='skus') renderSkus();
+  if(page==='lots') renderLots();
+  if(page==='pos') renderPOs();
+  if(page==='suppliers') renderSuppliers();
+  if(page==='alerts') renderAlerts();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// (initApp called after auth check above)
+</script>
+</body>
+</html>
